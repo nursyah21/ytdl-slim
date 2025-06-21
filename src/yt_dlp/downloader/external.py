@@ -11,7 +11,6 @@ import uuid
 
 from .fragment import FragmentFD
 from ..networking import Request
-from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
     RetryManager,

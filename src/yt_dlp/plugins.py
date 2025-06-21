@@ -181,6 +181,6 @@ def load_plugins(name, suffix):
     return classes
 
 
-sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
+sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor'))
 
 __all__ = ['COMPAT_PACKAGE_NAME', 'PACKAGE_NAME', 'directories', 'load_plugins']

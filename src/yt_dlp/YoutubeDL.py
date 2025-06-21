@@ -25,7 +25,7 @@ import traceback
 import unicodedata
 
 from .cache import Cache
-from .compat import urllib  # isort: split
+from .compat import urllib 
 from .compat import urllib_req_to_req
 from .cookies import CookieLoadError, LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -45,22 +45,7 @@ from .networking.exceptions import (
 )
 from .networking.impersonate import ImpersonateRequestHandler
 from .plugins import directories as plugin_directories
-from .postprocessor import _PLUGIN_CLASSES as plugin_pps
-from .postprocessor import (
-    EmbedThumbnailPP,
-    FFmpegFixupDuplicateMoovPP,
-    FFmpegFixupDurationPP,
-    FFmpegFixupM3u8PP,
-    FFmpegFixupM4aPP,
-    FFmpegFixupStretchedPP,
-    FFmpegFixupTimestampPP,
-    FFmpegMergerPP,
-    FFmpegPostProcessor,
-    FFmpegVideoConvertorPP,
-    MoveFilesAfterDownloadPP,
-    get_postprocessor,
-)
-from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
+
 from .update import (
     REPOSITORY,
     _get_system_deprecation,
@@ -100,7 +85,6 @@ from .utils import (
     RejectedVideoReached,
     SameFileError,
     UnavailableVideoError,
-    UserNotLive,
     YoutubeDLError,
     age_restricted,
     bug_reports_message,
@@ -1579,56 +1563,12 @@ class YoutubeDL:
         for key, value in extra_info.items():
             info_dict.setdefault(key, value)
 
-    def extract_info(self, url, download=True, ie_key=None, extra_info=None,
-                     process=True, force_generic_extractor=False):
-        """
-        Extract and return the information dictionary of the URL
+    def extract_info(self, url):
+        self._apply_header_cookies(url)
+        
+        return self.get_info_extractor("Youtube").extract(url)
 
-        Arguments:
-        @param url          URL to extract
-
-        Keyword arguments:
-        @param download     Whether to download videos
-        @param process      Whether to resolve all unresolved references (URLs, playlist items).
-                            Must be True for download to work
-        @param ie_key       Use only the extractor with this key
-
-        @param extra_info   Dictionary containing the extra values to add to the info (For internal use only)
-        @force_generic_extractor  Force using the generic extractor (Deprecated; use ie_key='Generic')
-        """
-
-        if extra_info is None:
-            extra_info = {}
-
-        if not ie_key and force_generic_extractor:
-            ie_key = 'Generic'
-
-        if ie_key:
-            ies = {ie_key: self._ies[ie_key]} if ie_key in self._ies else {}
-        else:
-            ies = self._ies
-
-        for key, ie in ies.items():
-            if not ie.suitable(url):
-                continue
-
-            if not ie.working():
-                self.report_warning('The program functionality for this site has been marked as broken, '
-                                    'and will probably not work.')
-
-            temp_id = ie.get_temp_id(url)
-            if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):
-                self.to_screen(f'[download] {self._format_screen(temp_id, self.Styles.ID)}: '
-                               'has already been recorded in the archive')
-                if self.params.get('break_on_existing', False):
-                    raise ExistingVideoReached
-                break
-            return self.__extract_info(url, self.get_info_extractor(key), download, extra_info, process)
-        else:
-            extractors_restricted = self.params.get('allowed_extractors') not in (None, ['default'])
-            self.report_error(f'No suitable extractor{format_field(ie_key, None, " (%s)")} found for URL {url}',
-                              tb=False if extractors_restricted else None)
-
+    
     def _handle_extraction_exceptions(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -1661,52 +1601,7 @@ class YoutubeDL:
                 break
         return wrapper
 
-    def _wait_for_video(self, ie_result={}):
-        if (not self.params.get('wait_for_video')
-                or ie_result.get('_type', 'video') != 'video'
-                or ie_result.get('formats') or ie_result.get('url')):
-            return
-
-        format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
-        last_msg = ''
-
-        def progress(msg):
-            nonlocal last_msg
-            full_msg = f'{msg}\n'
-            if not self.params.get('noprogress'):
-                full_msg = msg + ' ' * (len(last_msg) - len(msg)) + '\r'
-            elif last_msg:
-                return
-            self.to_screen(full_msg, skip_eol=True)
-            last_msg = msg
-
-        min_wait, max_wait = self.params.get('wait_for_video')
-        diff = try_get(ie_result, lambda x: x['release_timestamp'] - time.time())
-        if diff is None and ie_result.get('live_status') == 'is_upcoming':
-            diff = round(random.uniform(min_wait, max_wait) if (max_wait and min_wait) else (max_wait or min_wait), 0)
-            self.report_warning('Release time of video is not known')
-        elif ie_result and (diff or 0) <= 0:
-            self.report_warning('Video should already be available according to extracted info')
-        diff = min(max(diff or 0, min_wait or 0), max_wait or float('inf'))
-        self.to_screen(f'[wait] Waiting for {format_dur(diff)} - Press Ctrl+C to try now')
-
-        wait_till = time.time() + diff
-        try:
-            while True:
-                diff = wait_till - time.time()
-                if diff <= 0:
-                    progress('')
-                    raise ReExtractInfo('[wait] Wait period ended', expected=True)
-                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
-                time.sleep(1)
-        except KeyboardInterrupt:
-            progress('')
-            raise ReExtractInfo('[wait] Interrupted by user', expected=True)
-        except BaseException as e:
-            if not isinstance(e, ReExtractInfo):
-                self.to_screen('')
-            raise
-
+    
     def _load_cookies(self, data, *, autoscope=True):
         """Loads cookies from a `Cookie` header
 
@@ -1764,35 +1659,7 @@ class YoutubeDL:
             cookie.domain = f'.{parsed.hostname}'
             self.cookiejar.set_cookie(cookie)
 
-    @_handle_extraction_exceptions
-    def __extract_info(self, url, ie, download, extra_info, process):
-        self._apply_header_cookies(url)
-
-        try:
-            ie_result = ie.extract(url)
-        except UserNotLive as e:
-            if process:
-                if self.params.get('wait_for_video'):
-                    self.report_warning(e)
-                self._wait_for_video()
-            raise
-        if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
-            self.report_warning(f'Extractor {ie.IE_NAME} returned nothing{bug_reports_message()}')
-            return
-        if isinstance(ie_result, list):
-            # Backwards compatibility: old IE result format
-            ie_result = {
-                '_type': 'compat_list',
-                'entries': ie_result,
-            }
-        if extra_info.get('original_url'):
-            ie_result.setdefault('original_url', extra_info['original_url'])
-        self.add_default_extra_info(ie_result, ie, url)
-        if process:
-            self._wait_for_video(ie_result)
-            return self.process_ie_result(ie_result, download, extra_info)
-        else:
-            return ie_result
+    
 
     def add_default_extra_info(self, ie_result, ie, url):
         if url is not None:

@@ -19,17 +19,7 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .networking.impersonate import ImpersonateTarget
 from .options import parseOpts
-from .postprocessor import (
-    FFmpegExtractAudioPP,
-    FFmpegMergerPP,
-    FFmpegPostProcessor,
-    FFmpegSubtitlesConvertorPP,
-    FFmpegThumbnailsConvertorPP,
-    FFmpegVideoConvertorPP,
-    FFmpegVideoRemuxerPP,
-    MetadataFromFieldPP,
-    MetadataParserPP,
-)
+
 from .update import Updater
 from .utils import (
     Config,
@@ -501,10 +491,7 @@ def validate_options(opts):
         # Compat with youtube-dl's behavior. See https://github.com/ytdl-org/youtube-dl/commit/49c5293014bc11ec8c009856cd63cffa6296c1e1
         opts.external_downloader_args.setdefault(default_downloader, opts.external_downloader_args.pop('default'))
 
-    if report_args_compat('post-processor', opts.postprocessor_args, 'default-compat', 'default'):
-        opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
-        opts.postprocessor_args.setdefault('sponskrub', [])
-
+    
     def report_conflict(arg1, opt1, arg2='--allow-unplayable-formats', opt2='allow_unplayable_formats',
                         val1=NO_DEFAULT, val2=NO_DEFAULT, default=False):
         if val2 is NO_DEFAULT:
@@ -953,7 +940,6 @@ def parse_options(argv=None):
         'hls_use_mpegts': opts.hls_use_mpegts,
         'hls_split_discontinuity': opts.hls_split_discontinuity,
         'external_downloader_args': opts.external_downloader_args,
-        'postprocessor_args': opts.postprocessor_args,
         'cn_verification_proxy': opts.cn_verification_proxy,
         'geo_verification_proxy': opts.geo_verification_proxy,
         'geo_bypass': opts.geo_bypass,
