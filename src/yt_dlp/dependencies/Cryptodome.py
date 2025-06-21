@@ -4,7 +4,7 @@ try:
     import Cryptodome as _parent
 except ImportError:
     try:
-        import Crypto as _parent
+        import Crypto as _parent # type: ignore
     except (ImportError, SyntaxError):  # Old Crypto gives SyntaxError in newer Python
         _parent = passthrough_module(__name__, 'no_Cryptodome')
         __bool__ = lambda: False
@@ -16,14 +16,14 @@ AES = PKCS1_v1_5 = Blowfish = PKCS1_OAEP = SHA1 = CMAC = RSA = None
 try:
     if _parent.__name__ == 'Cryptodome':
         from Cryptodome import __version__
-        from Cryptodome.Cipher import AES, PKCS1_OAEP, Blowfish, PKCS1_v1_5
-        from Cryptodome.Hash import CMAC, SHA1
-        from Cryptodome.PublicKey import RSA
+        from Cryptodome.Cipher import AES, PKCS1_OAEP, Blowfish, PKCS1_v1_5 # type: ignore
+        from Cryptodome.Hash import CMAC, SHA1 # type: ignore
+        from Cryptodome.PublicKey import RSA # type: ignore
     elif _parent.__name__ == 'Crypto':
-        from Crypto import __version__
-        from Crypto.Cipher import AES, PKCS1_OAEP, Blowfish, PKCS1_v1_5  # noqa: F401
-        from Crypto.Hash import CMAC, SHA1  # noqa: F401
-        from Crypto.PublicKey import RSA  # noqa: F401
+        from Crypto import __version__ # type: ignore
+        from Crypto.Cipher import AES, PKCS1_OAEP, Blowfish, PKCS1_v1_5  # type: ignore # noqa: F401
+        from Crypto.Hash import CMAC, SHA1  # type: ignore # noqa: F401
+        from Crypto.PublicKey import RSA  # type: ignore # noqa: F401
 except (ImportError, OSError):
     __version__ = f'broken {__version__}'.strip()
 

@@ -1251,7 +1251,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
-                          if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
+                          if self._configuration_arg('approximate_date', ie_key=None)
                           else None),
             'release_timestamp': scheduled_timestamp,
             'availability':
